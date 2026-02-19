@@ -77,7 +77,7 @@ Respond with ONLY a valid JSON object — no markdown, no explanation outside th
 }`;
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.0-flash-001",
       systemInstruction: systemPrompt,
     });
 
@@ -102,8 +102,9 @@ Respond with ONLY a valid JSON object — no markdown, no explanation outside th
     return NextResponse.json({ recipe });
   } catch (error) {
     console.error("Recipe generation error:", error);
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Failed to generate recipe. Please try again." },
+      { error: `Failed to generate recipe: ${message}` },
       { status: 500 }
     );
   }
