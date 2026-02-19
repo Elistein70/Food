@@ -1,7 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 
-const client = new Anthropic();
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function POST(req: NextRequest) {
   try {
@@ -76,20 +76,15 @@ Respond with ONLY a valid JSON object — no markdown, no explanation outside th
   "chefNote": "An inspiring chef's note about the dish, its origins, or how to personalize it"
 }`;
 
-    const message = await client.messages.create({
-      model: "claude-opus-4-5",
-      max_tokens: 4096,
-      messages: [{ role: "user", content: userPrompt }],
-      system: systemPrompt,
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+      systemInstruction: systemPrompt,
     });
 
-    const content = message.content[0];
-    if (content.type !== "text") {
-      return NextResponse.json({ error: "Unexpected response type from AI" }, { status: 500 });
-    }
+    const result = await model.generateContent(userPrompt);
+    let jsonText = result.response.text().trim();
 
     // Strip markdown code fences if present
-    let jsonText = content.text.trim();
     if (jsonText.startsWith("```")) {
       jsonText = jsonText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     }
