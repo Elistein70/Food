@@ -5,7 +5,7 @@ const client = new Anthropic();
 
 export async function POST(req: NextRequest) {
   try {
-    const { mealType, kosherCategory, servings, specialRequests, cuisineStyle, appliances } =
+    const { ingredients, mealType, kosherCategory, servings, appliances } =
       await req.json();
 
     if (!appliances || appliances.length === 0) {
@@ -16,56 +16,64 @@ export async function POST(req: NextRequest) {
     }
 
     const kosherGuide: Record<string, string> = {
-      meat: "FLEISHIG (meat): Use only kosher-certified meat or poultry. No dairy of any kind — no butter, milk, cream, or cheese. No pork or shellfish ever.",
-      dairy: "MILCHIG (dairy): May include dairy. No meat or poultry. No pork or shellfish ever.",
+      meat: "FLEISHIG (meat): Use only kosher-certified meat or poultry. Absolutely no dairy — no butter, milk, cream, or cheese. No pork or shellfish ever.",
+      dairy: "MILCHIG (dairy): May include dairy ingredients. No meat or poultry. No pork or shellfish ever.",
       pareve:
-        "PAREVE (neutral): No meat, poultry, or dairy whatsoever. Fish (with fins and scales only) is permitted. This dish can be eaten with either a meat or dairy meal.",
+        "PAREVE (neutral): No meat, poultry, or dairy whatsoever. Fish with fins and scales is permitted. This dish can be served with either a meat or dairy meal.",
     };
 
-    const systemPrompt = `You are a world-class Michelin-star chef who also deeply understands Jewish kosher dietary laws.
-Your mission is to create elegant, impressive recipes that are:
-1. Strictly Kosher — you never make mistakes on this
-2. Achievable by a complete beginner home cook
-3. Written with crystal-clear instructions that assume zero culinary knowledge
+    const systemPrompt = `You are a world-class Michelin-star chef with deep expertise in Jewish kosher dietary laws.
+Your mission: create impressive, elegant recipes that are:
+1. Strictly Kosher — you never make errors on this. It is non-negotiable.
+2. Built around the specific ingredients the user provides — use them as the stars of the dish.
+3. Achievable by a complete beginner home cook with no prior cooking experience.
+4. Written with crystal-clear, step-by-step instructions that assume zero culinary knowledge.
 
-When you write steps, explain WHY each step matters (e.g. "We sear the meat first to lock in flavor and create a beautiful brown crust — this process is called the Maillard reaction").
-Define any culinary terms immediately after using them.
-Warn about common beginner mistakes before they happen.
-Give visual/sensory cues so the cook knows when something is done (e.g. "The onions are ready when they are completely soft and translucent with golden edges").
+When writing steps:
+- Explain WHY each step matters (e.g. "We sear the meat first to lock in flavor through a process called the Maillard reaction").
+- Define culinary terms immediately (e.g. "julienne — this means cutting into thin matchstick-sized strips").
+- Warn about common beginner mistakes before they happen.
+- Give visual, sensory, and timing cues so the cook knows when something is done (e.g. "The garlic is ready when it smells fragrant and turns light golden — not brown or it will be bitter").
+- Scale every quantity precisely to the requested number of servings.
 
-KOSHER LAW TO FOLLOW: ${kosherGuide[kosherCategory as keyof typeof kosherGuide]}
+KOSHER LAW: ${kosherGuide[kosherCategory as keyof typeof kosherGuide]}
 
 Available kitchen appliances: ${appliances.join(", ")}
-You MUST only use these appliances in your recipe. If an appliance is not on this list, do not use it.`;
+IMPORTANT: Only use these appliances. Do not reference any appliance not on this list.`;
 
-    const userPrompt = `Create a ${cuisineStyle} ${mealType} recipe for ${servings} serving${servings !== 1 ? "s" : ""}.
+    const userPrompt = `Create a Michelin-star level ${mealType} recipe for exactly ${servings} serving${servings !== 1 ? "s" : ""}.
+
 Kosher category: ${kosherCategory}
-${specialRequests ? `Special requests: ${specialRequests}` : ""}
+Core ingredients to use: ${ingredients}
 
-Respond with ONLY a valid JSON object. No markdown, no explanation outside the JSON. Use this exact structure:
+Build an elevated, restaurant-quality dish centered on these ingredients. You may add complementary pantry staples (kosher salt, olive oil, spices, etc.) but the provided ingredients must be the stars of the recipe.
+
+All quantities must be precisely scaled for ${servings} serving${servings !== 1 ? "s" : ""}.
+
+Respond with ONLY a valid JSON object — no markdown, no explanation outside the JSON:
 
 {
   "name": "Recipe name",
-  "description": "2-3 sentence description of the dish and why it is special",
-  "kosherNotes": "Specific kosher considerations for this recipe (certifications to look for, substitutions, etc.)",
+  "description": "2-3 sentence description of the dish, its flavors, and why it is special",
+  "kosherNotes": "Specific kosher considerations: what certifications to look for on packaging, any substitution warnings, or separation reminders",
   "prepTime": "e.g. 20 minutes",
   "cookTime": "e.g. 35 minutes",
   "servings": "${servings}",
   "difficulty": "Beginner-friendly",
   "ingredients": [
-    { "amount": "2 tbsp", "item": "extra-virgin olive oil", "note": "look for the kosher certification symbol" }
+    { "amount": "2 tbsp", "item": "extra-virgin olive oil", "note": "look for a kosher certification symbol on the label" }
   ],
   "steps": [
     {
       "number": 1,
       "title": "Short step title",
-      "instruction": "Detailed, beginner-friendly instruction. Explain what to do, how to do it, and what it should look, smell, or feel like when done correctly.",
-      "tip": "A beginner tip — a common mistake to avoid or a helpful trick",
-      "appliance": "Name of appliance used in this step, or null if none"
+      "instruction": "Full beginner-friendly instruction. Explain what to do, how to do it, and what it should look, smell, or feel like when done correctly. Include exact times and temperatures.",
+      "tip": "A beginner tip — a common mistake to avoid or a helpful trick to guarantee success",
+      "appliance": "Name of the specific appliance used in this step, or null if no appliance"
     }
   ],
-  "plating": "Simple but elegant plating instructions a beginner can follow",
-  "chefNote": "An inspiring chef's note about the dish, its origins, or how to make it your own"
+  "plating": "Simple but elegant plating and presentation instructions a beginner can follow to make the dish look restaurant-quality",
+  "chefNote": "An inspiring chef's note about the dish, its origins, or how to personalize it"
 }`;
 
     const message = await client.messages.create({

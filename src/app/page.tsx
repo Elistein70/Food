@@ -59,9 +59,8 @@ export default function HomePage() {
             Michelin-Level Kosher Recipes, Simplified
           </h2>
           <p className="text-gray-600 max-w-xl mx-auto">
-            Tell us what you want to cook and we&apos;ll craft an elevated, strictly Kosher recipe
-            using only the appliances in your kitchen — with step-by-step guidance written
-            for beginner cooks.
+            Answer a few quick questions and we&apos;ll craft an elevated, strictly Kosher recipe
+            built around your ingredients — with step-by-step guidance written for beginner cooks.
           </p>
           {ownedAppliances.length === 0 && (
             <div className="bg-amber-100 border border-amber-300 rounded-xl p-4 text-sm text-amber-800">
